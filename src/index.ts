@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
+import agents from "./agents.json";
 
 type Bindings = {
   LIVEKIT_API_KEY: string;
@@ -11,6 +12,10 @@ const app = new Hono<{ Bindings: Bindings }>();
 
 app.get("/", (c) => {
   return c.text("LiveKit Token Server");
+});
+
+app.get("/get-agents", (c) => {
+  return c.json(agents);
 });
 
 app.get("/getToken", async (c) => {
