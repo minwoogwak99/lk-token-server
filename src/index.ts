@@ -1,27 +1,26 @@
 import { Hono } from "hono";
 import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
-import agents from "./agents.json";
 
-type Bindings = {
-  LIVEKIT_API_KEY: string;
-  LIVEKIT_API_SECRET: string;
-  LIVEKIT_URL: string;
-};
-
-const app = new Hono<{ Bindings: Bindings }>();
+const app = new Hono<{ Bindings: Env }>();
 
 app.get("/", (c) => {
   return c.text("LiveKit Token Server");
 });
 
-app.get("/get-agents", (c) => {
-  return c.json(agents);
+app.get("/get-agents", async (c) => {
+  try {
+    const agents = await c.env.AGENTS_KV.list();
+    return c.json(agents.keys);
+  } catch (error) {
+    return c.json({ error: "Failed to fetch agents" }, 500);
+  }
 });
 
-app.get("/getToken", async (c) => {
+app.get("/dispatch-agent", async (c) => {
   try {
     const apiKey = c.env.LIVEKIT_API_KEY;
     const apiSecret = c.env.LIVEKIT_API_SECRET;
+    const livekitUrl = c.env.LIVEKIT_URL;
 
     if (!apiKey || !apiSecret) {
       return c.json({ error: "LiveKit API credentials not configured" }, 500);
@@ -30,6 +29,7 @@ app.get("/getToken", async (c) => {
     // Get query parameters for room and identity, with defaults
     const roomName = c.req.query("room") || "quickstart-room";
     const participantName = c.req.query("identity") || "quickstart-user";
+    const agentName = c.req.query("agentName") || "voice-agent-dev";
 
     // Create access token
     const at = new AccessToken(apiKey, apiSecret, {
@@ -51,6 +51,16 @@ app.get("/getToken", async (c) => {
 
     const token = await at.toJwt();
 
+    // START DISPATCHING AGENT
+    const agentDispatchClient = new AgentDispatchClient(
+      livekitUrl,
+      apiKey,
+      apiSecret
+    );
+
+    await agentDispatchClient.createDispatch(roomName, agentName);
+    // END DISPATCHING AGENT
+
     return c.json({
       token,
       room: roomName,
@@ -61,58 +71,58 @@ app.get("/getToken", async (c) => {
   }
 });
 
-app.post("/dispatch-agent", async (c) => {
-  try {
-    const apiKey = c.env.LIVEKIT_API_KEY;
-    const apiSecret = c.env.LIVEKIT_API_SECRET;
-    const livekitUrl = c.env.LIVEKIT_URL;
+// app.post("/dispatch-agent", async (c) => {
+//   try {
+//     const apiKey = c.env.LIVEKIT_API_KEY;
+//     const apiSecret = c.env.LIVEKIT_API_SECRET;
+//     const livekitUrl = c.env.LIVEKIT_URL;
 
-    if (!apiKey || !apiSecret || !livekitUrl) {
-      return c.json({ error: "LiveKit API credentials not configured" }, 500);
-    }
+//     if (!apiKey || !apiSecret || !livekitUrl) {
+//       return c.json({ error: "LiveKit API credentials not configured" }, 500);
+//     }
 
-    // Get request body
-    const body = await c.req.json().catch(() => ({}));
-    const roomName = body.room || c.req.query("room");
-    const agentName = body.agentName || c.req.query("agentName");
-    const metadata = body.metadata || c.req.query("metadata") || "{}";
+//     // Get request body
+//     const body = await c.req.json().catch(() => ({}));
+//     const roomName = body.room || c.req.query("room");
+//     const agentName = body.agentName || c.req.query("agentName");
+//     const metadata = body.metadata || c.req.query("metadata") || "{}";
 
-    if (!roomName) {
-      return c.json({ error: "Room name is required" }, 400);
-    }
+//     if (!roomName) {
+//       return c.json({ error: "Room name is required" }, 400);
+//     }
 
-    // Create agent dispatch client
-    const agentDispatchClient = new AgentDispatchClient(
-      livekitUrl,
-      apiKey,
-      apiSecret
-    );
+//     // Create agent dispatch client
+//     const agentDispatchClient = new AgentDispatchClient(
+//       livekitUrl,
+//       apiKey,
+//       apiSecret
+//     );
 
-    // Dispatch the air-voice-agent
-    const dispatch = await agentDispatchClient.createDispatch(
-      roomName,
-      agentName || "air-voice-agent",
-      {
-        metadata: metadata,
-      }
-    );
+//     // Dispatch the air-voice-agent
+//     const dispatch = await agentDispatchClient.createDispatch(
+//       roomName,
+//       agentName || "air-voice-agent",
+//       {
+//         metadata: metadata,
+//       }
+//     );
 
-    return c.json({
-      success: true,
-      dispatch: dispatch,
-      room: roomName,
-      agentName: agentName || "air-voice-agent",
-      metadata: metadata,
-    });
-  } catch (error) {
-    return c.json(
-      {
-        error: "Failed to dispatch agent",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      500
-    );
-  }
-});
+//     return c.json({
+//       success: true,
+//       dispatch: dispatch,
+//       room: roomName,
+//       agentName: agentName || "air-voice-agent",
+//       metadata: metadata,
+//     });
+//   } catch (error) {
+//     return c.json(
+//       {
+//         error: "Failed to dispatch agent",
+//         details: error instanceof Error ? error.message : String(error),
+//       },
+//       500
+//     );
+//   }
+// });
 
 export default app;
