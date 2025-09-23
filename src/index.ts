@@ -21,6 +21,7 @@ app.get("/dispatch-agent", async (c) => {
     const apiKey = c.env.LIVEKIT_API_KEY;
     const apiSecret = c.env.LIVEKIT_API_SECRET;
     const livekitUrl = c.env.LIVEKIT_URL;
+    const userName = c.req.query("userName")
 
     if (!apiKey || !apiSecret) {
       return c.json({ error: "LiveKit API credentials not configured" }, 500);
@@ -58,7 +59,11 @@ app.get("/dispatch-agent", async (c) => {
       apiSecret
     );
 
-    await agentDispatchClient.createDispatch(roomName, agentName);
+    await agentDispatchClient.createDispatch(roomName, agentName, {
+      metadata: JSON.stringify({
+        userName
+      })
+    });
     // END DISPATCHING AGENT
 
     return c.json({
