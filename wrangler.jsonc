@@ -4,6 +4,10 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-09-13",
   "compatibility_flags": ["nodejs_compat"],
+  "dev": {
+    "port": 4000,
+    "ip": "0.0.0.0"
+  },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
@@ -13,6 +17,13 @@
       "binding": "AGENTS_KV",
       "id": "daf12886fee34218af5010c2e79cef08",
       "preview_id": "daf12886fee34218af5010c2e79cef08"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "zappytalk_db",
+      "database_name": "zappy-talk-db",
+      "database_id": "1fa1bbca-108f-40f4-aa7d-3d8d59d403e4"
     }
   ]
 }

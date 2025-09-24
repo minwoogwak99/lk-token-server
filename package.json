@@ -2,17 +2,20 @@
   "name": "lk-server-api",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --remote",
+    "dev:local": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "generate-types": "wrangler types",
     "type-check": "npm run generate-types && tsc"
   },
   "dependencies": {
+    "@clerk/backend": "^2.15.0",
     "hono": "^4.9.7",
     "livekit-server-sdk": "^2.13.3"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
+    "typescript": "^5.9.2",
     "wrangler": "^4.4.0"
   }
 }
