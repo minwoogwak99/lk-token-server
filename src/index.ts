@@ -78,6 +78,7 @@ app.get("/", (c) => {
 app.use("/get-agents", authMiddleware);
 app.use("/dispatch-agent", authMiddleware);
 app.use("/users/:user_id", authMiddleware);
+app.use("/session-logs", authMiddleware);
 
 app.get("/get-agents", async (c) => {
   try {
@@ -330,6 +331,52 @@ app.put("/users/:user_id", async (c) => {
       return c.json({ error: "Email already exists. Please use a different email address." }, 409);
     }
     
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// Session log management endpoints
+// POST /session-logs - Store a new session log
+app.post("/session-logs", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { user_id, agent_name, started_at, ended_at, messages_json } = body;
+
+    if (!user_id || !agent_name || !started_at || !ended_at || !messages_json) {
+      return c.json({
+        error: "user_id, agent_name, started_at, ended_at, and messages_json are required"
+      }, 400);
+    }
+
+    // Generate a unique ID for the session log
+    const id = crypto.randomUUID();
+
+    // Insert the session log record
+    const result = await c.env.zappytalk_db
+      .prepare(`
+        INSERT INTO session_log (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json)
+      .run();
+
+    if (!result.success) {
+      return c.json({ error: "Failed to create session log" }, 500);
+    }
+
+    // Fetch the created session log
+    const newSessionLog = await c.env.zappytalk_db
+      .prepare("SELECT * FROM session_log WHERE id = ?")
+      .bind(id)
+      .first();
+
+    return c.json({
+      session_log: newSessionLog,
+      message: "Session log created successfully"
+    }, 201);
+
+  } catch (error) {
+    console.error("Error in /session-logs:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
