@@ -93,21 +93,21 @@ app.get("/dispatch-agent", async (c) => {
     const apiKey = c.env.LIVEKIT_API_KEY;
     const apiSecret = c.env.LIVEKIT_API_SECRET;
     const livekitUrl = c.env.LIVEKIT_URL;
-    const userName = c.req.query("userName")
-
+    
     if (!apiKey || !apiSecret) {
       return c.json({ error: "LiveKit API credentials not configured" }, 500);
     }
-
+    
     // Get query parameters for room and identity, with defaults
     const roomName = c.req.query("room") || "quickstart-room";
-    const participantName = c.req.query("identity") || "quickstart-user";
+    const userName = c.req.query("userName")
+    const participantIdentity = c.req.query("identity") || "quickstart-user";
     const agentName = c.req.query("agentName") || "voice-agent-dev";
 
     // Create access token
     const at = new AccessToken(apiKey, apiSecret, {
-      identity: participantName,
-      name: participantName,
+      identity: participantIdentity,
+      name: userName,
       // Token to expire after 10 minutes
       ttl: "10m",
     });
@@ -133,7 +133,8 @@ app.get("/dispatch-agent", async (c) => {
 
     await agentDispatchClient.createDispatch(roomName, agentName, {
       metadata: JSON.stringify({
-        userName
+        userName,
+        userId: participantIdentity
       })
     });
     // END DISPATCHING AGENT
@@ -141,7 +142,7 @@ app.get("/dispatch-agent", async (c) => {
     return c.json({
       token,
       room: roomName,
-      identity: participantName,
+      identity: participantIdentity,
     });
   } catch (error) {
     return c.json({ error: "Failed to generate token" }, 500);
