@@ -78,7 +78,7 @@ app.get("/", (c) => {
 app.use("/get-agents", authMiddleware);
 app.use("/dispatch-agent", authMiddleware);
 app.use("/users/:user_id", authMiddleware);
-app.use("/session-logs", authMiddleware);
+app.use("/calls", authMiddleware);
 
 app.get("/get-agents", async (c) => {
   try {
@@ -335,21 +335,18 @@ app.put("/users/:user_id", async (c) => {
   }
 });
 
-// Session log management endpoints
-// POST /session-logs - Store a new session log
-app.post("/session-logs", async (c) => {
+// Call management endpoints
+// POST /calls - Store a new call record
+app.post("/calls", async (c) => {
   try {
     const body = await c.req.json();
-    const { user_id, agent_name, started_at, ended_at, messages_json } = body;
+    const { id, user_id, agent_name, started_at, ended_at, messages_json } = body;
 
     if (!user_id || !agent_name || !started_at || !ended_at || !messages_json) {
       return c.json({
         error: "user_id, agent_name, started_at, ended_at, and messages_json are required"
       }, 400);
     }
-
-    // Generate a unique ID for the session log
-    const id = crypto.randomUUID();
 
     // Insert the session log record
     const result = await c.env.zappytalk_db
@@ -364,75 +361,65 @@ app.post("/session-logs", async (c) => {
       return c.json({ error: "Failed to create session log" }, 500);
     }
 
-    // Fetch the created session log
-    const newSessionLog = await c.env.zappytalk_db
-      .prepare("SELECT * FROM calls WHERE id = ?")
-      .bind(id)
-      .first();
 
     return c.json({
-      calls: newSessionLog,
       message: "Session log created successfully"
     }, 201);
 
   } catch (error) {
-    console.error("Error in /session-logs:", error);
+    console.error("Error in /calls:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
 
-// app.post("/dispatch-agent", async (c) => {
-//   try {
-//     const apiKey = c.env.LIVEKIT_API_KEY;
-//     const apiSecret = c.env.LIVEKIT_API_SECRET;
-//     const livekitUrl = c.env.LIVEKIT_URL;
+app.put("/calls/:call_id/summary", async (c) => {
+  try {
+    const callId = c.req.param("call_id");
 
-//     if (!apiKey || !apiSecret || !livekitUrl) {
-//       return c.json({ error: "LiveKit API credentials not configured" }, 500);
-//     }
+    if (!callId) {
+      return c.json({ error: "call_id path parameter is required" }, 400);
+    }
 
-//     // Get request body
-//     const body = await c.req.json().catch(() => ({}));
-//     const roomName = body.room || c.req.query("room");
-//     const agentName = body.agentName || c.req.query("agentName");
-//     const metadata = body.metadata || c.req.query("metadata") || "{}";
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch (parseError) {
+      return c.json({ error: "Invalid JSON body" }, 400);
+    }
 
-//     if (!roomName) {
-//       return c.json({ error: "Room name is required" }, 400);
-//     }
+    if (!body || typeof body !== "object" || body === null) {
+      return c.json({ error: "Request body must be a JSON object" }, 400);
+    }
 
-//     // Create agent dispatch client
-//     const agentDispatchClient = new AgentDispatchClient(
-//       livekitUrl,
-//       apiKey,
-//       apiSecret
-//     );
+    const summary = (body as { summary?: unknown }).summary;
 
-//     // Dispatch the air-voice-agent
-//     const dispatch = await agentDispatchClient.createDispatch(
-//       roomName,
-//       agentName || "air-voice-agent",
-//       {
-//         metadata: metadata,
-//       }
-//     );
+    // checking call exist
+    const existingCall = await c.env.zappytalk_db
+      .prepare("SELECT id FROM calls WHERE id = ? AND deleted_at IS NULL")
+      .bind(callId)
+      .first();
 
-//     return c.json({
-//       success: true,
-//       dispatch: dispatch,
-//       room: roomName,
-//       agentName: agentName || "air-voice-agent",
-//       metadata: metadata,
-//     });
-//   } catch (error) {
-//     return c.json(
-//       {
-//         error: "Failed to dispatch agent",
-//         details: error instanceof Error ? error.message : String(error),
-//       },
-//       500
-//     );
-//   }
-// });
+    if (!existingCall) {
+      return c.json({ error: "Call not found" }, 404);
+    }
+
+    const updateResult = await c.env.zappytalk_db
+      .prepare("UPDATE calls SET summary = ? WHERE id = ? AND deleted_at IS NULL")
+      .bind(summary, callId)
+      .run();
+
+    if (!updateResult.success || (updateResult.meta as { changes?: number } | undefined)?.changes === 0) {
+      return c.json({ error: "Failed to update call summary" }, 500);
+    }
+
+    return c.json({
+      message: "Call summary updated successfully"
+    });
+
+  } catch (error) {
+    console.error("Error in PUT /calls/:call_id/summary:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
 
 export default app;
