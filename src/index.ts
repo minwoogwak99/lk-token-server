@@ -354,7 +354,7 @@ app.post("/session-logs", async (c) => {
     // Insert the session log record
     const result = await c.env.zappytalk_db
       .prepare(`
-        INSERT INTO session_log (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json)
+        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json)
@@ -366,12 +366,12 @@ app.post("/session-logs", async (c) => {
 
     // Fetch the created session log
     const newSessionLog = await c.env.zappytalk_db
-      .prepare("SELECT * FROM session_log WHERE id = ?")
+      .prepare("SELECT * FROM calls WHERE id = ?")
       .bind(id)
       .first();
 
     return c.json({
-      session_log: newSessionLog,
+      calls: newSessionLog,
       message: "Session log created successfully"
     }, 201);
 
