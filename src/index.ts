@@ -79,6 +79,7 @@ app.use("/get-agents", authMiddleware);
 app.use("/dispatch-agent", authMiddleware);
 app.use("/users/:user_id", authMiddleware);
 app.use("/calls", authMiddleware);
+app.use("/calls/user/:user_id", authMiddleware);
 
 app.get("/get-agents", async (c) => {
   try {
@@ -104,6 +105,7 @@ app.get("/dispatch-agent", async (c) => {
     const userName = c.req.query("userName")
     const participantIdentity = c.req.query("identity") || "quickstart-user";
     const agentName = c.req.query("agentName") || "voice-agent-dev";
+    const userContext = c.req.query("userContext") || "{}";
 
     // Create access token
     const at = new AccessToken(apiKey, apiSecret, {
@@ -135,7 +137,10 @@ app.get("/dispatch-agent", async (c) => {
     await agentDispatchClient.createDispatch(roomName, agentName, {
       metadata: JSON.stringify({
         userName,
-        userId: participantIdentity
+        userId: participantIdentity,
+        userContext: {
+          ...JSON.parse(userContext),
+        }
       })
     });
     // END DISPATCHING AGENT
@@ -340,7 +345,7 @@ app.put("/users/:user_id", async (c) => {
 app.post("/calls", async (c) => {
   try {
     const body = await c.req.json();
-    const { id, user_id, agent_name, started_at, ended_at, messages_json } = body;
+    const { id, user_id, agent_name, started_at, ended_at, messages_json, user_location } = body;
 
     if (!user_id || !agent_name || !started_at || !ended_at || !messages_json) {
       return c.json({
@@ -351,10 +356,10 @@ app.post("/calls", async (c) => {
     // Insert the session log record
     const result = await c.env.zappytalk_db
       .prepare(`
-        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json)
+        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json, user_location)
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `)
-      .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json)
+      .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json, user_location || null)
       .run();
 
     if (!result.success) {
@@ -368,6 +373,67 @@ app.post("/calls", async (c) => {
 
   } catch (error) {
     console.error("Error in /calls:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+// GET /calls/user/:user_id - Get all calls for a user with pagination
+app.get("/calls/user/:user_id", async (c) => {
+  try {
+    const requestedUserId = c.req.param("user_id");
+    const authenticatedUserId = c.get('userId');
+
+    // Ensure users can only access their own calls
+    if (requestedUserId !== authenticatedUserId) {
+      return c.json({ error: "Access denied. You can only access your own call data." }, 403);
+    }
+
+    // Pagination parameters
+    const page = parseInt(c.req.query("page") || "1");
+    const limit = parseInt(c.req.query("limit") || "10");
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      return c.json({ error: "Invalid pagination parameters. Page must be >= 1, limit must be between 1 and 100." }, 400);
+    }
+
+    const offset = (page - 1) * limit;
+
+    // Get total count of calls for the user
+    const countResult = await c.env.zappytalk_db
+      .prepare("SELECT COUNT(*) as total FROM calls WHERE user_id = ? AND deleted_at IS NULL")
+      .bind(requestedUserId)
+      .first();
+
+    const totalCalls = (countResult as { total: number })?.total || 0;
+    const totalPages = Math.ceil(totalCalls / limit);
+
+    // Fetch paginated calls
+    const calls = await c.env.zappytalk_db
+      .prepare(`
+        SELECT id, user_id, agent_name, started_at, ended_at, summary, messages_json
+        FROM calls
+        WHERE user_id = ? AND deleted_at IS NULL
+        ORDER BY started_at DESC
+        LIMIT ? OFFSET ?
+      `)
+      .bind(requestedUserId, limit, offset)
+      .all();
+
+    return c.json({
+      calls: calls.results || [],
+      pagination: {
+        page,
+        limit,
+        totalCalls,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error("Error in GET /calls/user/:user_id:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
