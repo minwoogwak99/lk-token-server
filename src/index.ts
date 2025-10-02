@@ -347,6 +347,7 @@ app.post("/calls", async (c) => {
     const body = await c.req.json();
     const { id, user_id, agent_name, started_at, ended_at, messages_json, user_location } = body;
 
+
     if (!user_id || !agent_name || !started_at || !ended_at || !messages_json) {
       return c.json({
         error: "user_id, agent_name, started_at, ended_at, and messages_json are required"
@@ -356,8 +357,8 @@ app.post("/calls", async (c) => {
     // Insert the session log record
     const result = await c.env.zappytalk_db
       .prepare(`
-        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json, user_location)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json, location)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json, user_location || null)
       .run();
@@ -411,7 +412,7 @@ app.get("/calls/user/:user_id", async (c) => {
     // Fetch paginated calls
     const calls = await c.env.zappytalk_db
       .prepare(`
-        SELECT id, user_id, agent_name, started_at, ended_at, summary, messages_json
+        SELECT id, user_id, agent_name, started_at, ended_at, summary, messages_json, location
         FROM calls
         WHERE user_id = ? AND deleted_at IS NULL
         ORDER BY started_at DESC
