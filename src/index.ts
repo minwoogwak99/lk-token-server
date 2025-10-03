@@ -439,6 +439,11 @@ app.get("/calls/user/:user_id", async (c) => {
   }
 });
 
+// GET /default-agent - Get the default agent for a user
+app.get("/default-agent", async (c) => {
+  return c.json({ agent: c.env.DEFAULT_AGENT_NAME || "" });
+});
+
 app.put("/calls/:call_id/summary", async (c) => {
   try {
     const callId = c.req.param("call_id");

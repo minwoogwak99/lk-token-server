@@ -15,6 +15,8 @@ declare interface Env {
   LIVEKIT_API_KEY: string;
   LIVEKIT_API_SECRET: string;
   LIVEKIT_URL: string;
+  /** Default agent name */
+  DEFAULT_AGENT_NAME?: string;
 }
 
 
