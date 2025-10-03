@@ -10,8 +10,12 @@
   },
   "dependencies": {
     "@clerk/backend": "^2.15.0",
+    "@hono/standard-validator": "^0.1.5",
+    "@scalar/hono-api-reference": "^0.9.20",
     "hono": "^4.9.7",
-    "livekit-server-sdk": "^2.13.3"
+    "hono-openapi": "^1.1.0",
+    "livekit-server-sdk": "^2.13.3",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
