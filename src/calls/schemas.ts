@@ -8,6 +8,7 @@ export const createCallSchema = z.object({
   ended_at: z.string().min(1, "ended_at is required"),
   messages_json: z.string().min(1, "messages_json is required"),
   user_location: z.string().optional().nullable(),
+  room_id: z.string().optional().nullable(),
 });
 
 export const updateCallSummarySchema = z.object({

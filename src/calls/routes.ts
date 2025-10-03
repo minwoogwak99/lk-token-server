@@ -19,15 +19,15 @@ calls.post(
   async (c) => {
     try {
       const body = c.req.valid("json");
-      const { id, user_id, agent_name, started_at, ended_at, messages_json, user_location } = body;
+      const { id, user_id, agent_name, started_at, ended_at, messages_json, user_location, room_id } = body;
 
       // Insert the session log record
       const result = await c.env.zappytalk_db
         .prepare(`
-        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json, location)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO calls (id, user_id, agent_name, started_at, ended_at, deleted_at, messages_json, location, room_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-        .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json, user_location || null)
+        .bind(id, user_id, agent_name, started_at, ended_at, null, messages_json, user_location || null, room_id || null)
         .run();
 
       if (!result.success) {
