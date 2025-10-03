@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { describeRoute, resolver, validator } from "hono-openapi";
+import { describeRoute, validator } from "hono-openapi";
 import { createCallSchema, updateCallSummarySchema, addMemorySchema, paginationQuerySchema } from "./schemas";
-import { z } from "zod";
+import { createCallDescription, getUserCallsDescription, updateCallSummaryDescription, addMemoryDescription } from "./route-descriptions";
 
 const calls = new Hono<{
   Bindings: Env;
@@ -14,36 +14,7 @@ const calls = new Hono<{
 // POST / - Store a new call record
 calls.post(
   "/",
-  describeRoute({
-    tags: ["Calls"],
-    description: "Create a new call record",
-    responses: {
-      201: {
-        description: "Call created successfully",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ message: z.string() })),
-          },
-        },
-      },
-      400: {
-        description: "Bad request",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(createCallDescription),
   validator("json", createCallSchema),
   async (c) => {
     try {
@@ -79,56 +50,7 @@ calls.post(
 // GET /user/:user_id - Get all calls for a user with pagination
 calls.get(
   "/user/:user_id",
-  describeRoute({
-    tags: ["Calls"],
-    description: "Get all calls for a user with pagination",
-    responses: {
-      200: {
-        description: "List of calls",
-        content: {
-          "application/json": {
-            schema: resolver(
-              z.object({
-                calls: z.array(z.any()),
-                pagination: z.object({
-                  page: z.number(),
-                  limit: z.number(),
-                  totalCalls: z.number(),
-                  totalPages: z.number(),
-                  hasNextPage: z.boolean(),
-                  hasPreviousPage: z.boolean(),
-                }),
-              })
-            ),
-          },
-        },
-      },
-      400: {
-        description: "Bad request",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      403: {
-        description: "Access denied",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(getUserCallsDescription),
   validator("query", paginationQuerySchema),
   async (c) => {
     try {
@@ -187,44 +109,7 @@ calls.get(
 // PUT /:call_id/summary - Update call summary
 calls.put(
   "/:call_id/summary",
-  describeRoute({
-    tags: ["Calls"],
-    description: "Update call summary",
-    responses: {
-      200: {
-        description: "Summary updated successfully",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ message: z.string() })),
-          },
-        },
-      },
-      400: {
-        description: "Bad request",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      404: {
-        description: "Call not found",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(updateCallSummaryDescription),
   validator("json", updateCallSummarySchema),
   async (c) => {
     try {
@@ -269,36 +154,7 @@ calls.put(
 // POST /add-memory - Add memory for a call
 calls.post(
   "/add-memory",
-  describeRoute({
-    tags: ["Calls"],
-    description: "Add memory for a call",
-    responses: {
-      201: {
-        description: "Memory added successfully",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ message: z.string() })),
-          },
-        },
-      },
-      400: {
-        description: "Bad request",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(addMemoryDescription),
   validator("json", addMemorySchema),
   async (c) => {
     try {

@@ -16,5 +16,34 @@ export const updateUserSchema = z.object({
   { message: "At least one field (user_name, email, or profile_img) must be provided for update" }
 );
 
+export const userContextSchema = z.object({
+  currentDateTime: z.string().datetime(), // ISO 8601 UTC time
+  currentDateTimeLocal: z.string().optional(), // Human-readable local time with timezone
+  timezone: z.string(),
+  locale: z.string(),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    address: z.string().optional(),
+  }).optional(),
+  lastCallTime: z.string().optional(),
+  lastCallLocation: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    address: z.string().optional(),
+  }).optional(),
+  previousCallsCount: z.number().optional(),
+  timeSinceLastCall: z.number().optional(), // Duration in seconds since last call
+  device: z.object({
+    brand: z.string().optional(),
+    deviceName: z.string().optional(),
+    deviceType: z.string().optional(),
+    manufacturer: z.string().optional(),
+    osName: z.string().optional(),
+    osVersion: z.string().optional(),
+  }).optional(),
+});
+
 export type CheckOrCreateUserInput = z.infer<typeof checkOrCreateUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type UserContext = z.infer<typeof userContextSchema>;

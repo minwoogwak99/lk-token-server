@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { AccessToken, AgentDispatchClient } from "livekit-server-sdk";
-import { describeRoute, resolver, validator } from "hono-openapi";
+import { describeRoute, validator } from "hono-openapi";
 import { dispatchAgentQuerySchema } from "./schemas";
-import { z } from "zod";
+import { getAgentsDescription, dispatchAgentDescription, getDefaultAgentDescription } from "./route-descriptions";
 
 const agents = new Hono<{
   Bindings: Env;
@@ -14,20 +14,7 @@ const agents = new Hono<{
 
 agents.get(
   "/get-agents",
-  describeRoute({
-    tags: ["Agents"],
-    description: "Get list of available agents",
-    responses: {
-      200: {
-        description: "List of agent keys",
-        content: {
-          "application/json": {
-            schema: resolver(z.array(z.object({ name: z.string() }))),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(getAgentsDescription),
   async (c) => {
     try {
       const agents = await c.env.AGENTS_KV.list();
@@ -40,34 +27,7 @@ agents.get(
 
 agents.get(
   "/dispatch-agent",
-  describeRoute({
-    tags: ["Agents"],
-    description: "Dispatch an agent to a LiveKit room",
-    responses: {
-      200: {
-        description: "Agent dispatched successfully",
-        content: {
-          "application/json": {
-            schema: resolver(
-              z.object({
-                token: z.string(),
-                room: z.string(),
-                identity: z.string(),
-              })
-            ),
-          },
-        },
-      },
-      500: {
-        description: "Server error",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ error: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(dispatchAgentDescription),
   validator("query", dispatchAgentQuerySchema),
   async (c) => {
     try {
@@ -133,20 +93,7 @@ agents.get(
 
 agents.get(
   "/default-agent",
-  describeRoute({
-    tags: ["Agents"],
-    description: "Get default agent name",
-    responses: {
-      200: {
-        description: "Default agent name",
-        content: {
-          "application/json": {
-            schema: resolver(z.object({ agent: z.string() })),
-          },
-        },
-      },
-    },
-  }),
+  describeRoute(getDefaultAgentDescription),
   async (c) => {
     return c.json({ agent: c.env.DEFAULT_AGENT_NAME || "" });
   }
