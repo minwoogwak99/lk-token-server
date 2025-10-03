@@ -494,4 +494,36 @@ app.put("/calls/:call_id/summary", async (c) => {
   }
 });
 
+app.post("/add-memory", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { room_id, user_id, embedding_id, memory, memory_embedding, memory_type } = body;
+
+    if (!room_id || !user_id || !embedding_id || !memory || !memory_embedding || !memory_type) {
+      return c.json({ error: "room_id, user_id, embedding_id, memory, memory_embedding, and memory_type are required" }, 400);
+    }
+
+    const memory_id = crypto.randomUUID();
+    const created_at = new Date().toISOString();
+
+    const result = await c.env.zappytalk_db.prepare(`
+      INSERT INTO memories (memory_id, room_id, user_id, embedding_id, memory, memory_embedding, memory_type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+      .bind(memory_id, room_id, user_id, embedding_id, memory, memory_embedding, memory_type, created_at)
+      .run();
+
+    if (!result.success) {
+      return c.json({ error: "Failed to add memory" }, 500);
+    }
+
+    return c.json({ message: "Memory added successfully" }, 201);
+
+
+  } catch (error) {
+    console.error("Error in /add-memory:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+})
+
 export default app;
