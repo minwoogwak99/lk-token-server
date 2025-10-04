@@ -21,7 +21,7 @@ export const addMemorySchema = z.object({
   embedding_id: z.number().min(1, "embedding_id is required"),
   memory: z.string().min(1, "memory is required"),
   memory_embedding: z.string().min(1, "memory_embedding is required"),
-  memory_type: z.string().min(1, "memory_type is required"),
+  memory_type: z.enum(['summary', 'fact'])
 });
 
 export const paginationQuerySchema = z.object({
