@@ -85,6 +85,15 @@ export const getUserCallsDescription = {
 
 export const updateCallSummaryDescription = {
   tags: ["Calls"],
+  parameters: [
+    {
+      name: "room_id",
+      in: "path",
+      required: true,
+      description: "The SID of the room which can be retrieved from livekit room context",
+      schema: { type: "string" as const },
+    }
+  ],
   description: "Update call summary",
   responses: {
     200: {

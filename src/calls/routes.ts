@@ -108,24 +108,20 @@ calls.get(
 
 // PUT /:call_id/summary - Update call summary
 calls.put(
-  "/:call_id/summary",
+  "/:room_id/summary",
   describeRoute(updateCallSummaryDescription),
   validator("json", updateCallSummarySchema),
   async (c) => {
     try {
-      const callId = c.req.param("call_id");
-
-      if (!callId) {
-        return c.json({ error: "call_id path parameter is required" }, 400);
-      }
+      const roomId = c.req.param("room_id");
 
       const body = c.req.valid("json");
       const summary = body.summary;
 
       // checking call exist
       const existingCall = await c.env.zappytalk_db
-        .prepare("SELECT id FROM calls WHERE id = ? AND deleted_at IS NULL")
-        .bind(callId)
+        .prepare("SELECT id FROM calls WHERE room_id = ? AND deleted_at IS NULL")
+        .bind(roomId)
         .first();
 
       if (!existingCall) {
@@ -133,8 +129,8 @@ calls.put(
       }
 
       const updateResult = await c.env.zappytalk_db
-        .prepare("UPDATE calls SET summary = ? WHERE id = ? AND deleted_at IS NULL")
-        .bind(summary, callId)
+        .prepare("UPDATE calls SET summary = ? WHERE room_id = ? AND deleted_at IS NULL")
+        .bind(summary, roomId)
         .run();
 
       if (!updateResult.success || (updateResult.meta as { changes?: number } | undefined)?.changes === 0) {
@@ -145,7 +141,7 @@ calls.put(
         message: "Call summary updated successfully",
       });
     } catch (error) {
-      console.error("Error in PUT /:call_id/summary:", error);
+      console.error("Error in PUT /:room_id/summary:", error);
       return c.json({ error: "Internal server error" }, 500);
     }
   }
