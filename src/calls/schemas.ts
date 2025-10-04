@@ -18,7 +18,7 @@ export const updateCallSummarySchema = z.object({
 export const addMemorySchema = z.object({
   room_id: z.string().min(1, "room_id is required"),
   user_id: z.string().min(1, "user_id is required"),
-  embedding_id: z.string().min(1, "embedding_id is required"),
+  embedding_id: z.number().min(1, "embedding_id is required"),
   memory: z.string().min(1, "memory is required"),
   memory_embedding: z.string().min(1, "memory_embedding is required"),
   memory_type: z.string().min(1, "memory_type is required"),
