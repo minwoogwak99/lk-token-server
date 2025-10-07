@@ -83,54 +83,6 @@ export const getUserCallsDescription = {
   },
 };
 
-export const updateCallSummaryDescription = {
-  tags: ["Calls"],
-  parameters: [
-    {
-      name: "room_id",
-      in: "path",
-      required: true,
-      description: "The SID of the room which can be retrieved from livekit room context",
-      schema: { type: "string" as const },
-    }
-  ],
-  description: "Update call summary",
-  responses: {
-    200: {
-      description: "Summary updated successfully",
-      content: {
-        "application/json": {
-          schema: resolver(z.object({ message: z.string() })),
-        },
-      },
-    },
-    400: {
-      description: "Bad request",
-      content: {
-        "application/json": {
-          schema: resolver(z.object({ error: z.string() })),
-        },
-      },
-    },
-    404: {
-      description: "Call not found",
-      content: {
-        "application/json": {
-          schema: resolver(z.object({ error: z.string() })),
-        },
-      },
-    },
-    500: {
-      description: "Server error",
-      content: {
-        "application/json": {
-          schema: resolver(z.object({ error: z.string() })),
-        },
-      },
-    },
-  },
-};
-
 export const addMemoryDescription = {
   tags: ["Calls"],
   description: "Add memory for a call",

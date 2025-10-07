@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describeRoute, validator } from "hono-openapi";
-import { createCallSchema, updateCallSummarySchema, addMemorySchema, paginationQuerySchema } from "./schemas";
-import { createCallDescription, getUserCallsDescription, updateCallSummaryDescription, addMemoryDescription } from "./route-descriptions";
+import { createCallSchema, addMemorySchema, paginationQuerySchema } from "./schemas";
+import { createCallDescription, getUserCallsDescription, addMemoryDescription } from "./route-descriptions";
 
 const calls = new Hono<{
   Bindings: Env;
@@ -106,47 +106,6 @@ calls.get(
   }
 );
 
-// PUT /:call_id/summary - Update call summary
-calls.put(
-  "/:room_id/summary",
-  describeRoute(updateCallSummaryDescription),
-  validator("json", updateCallSummarySchema),
-  async (c) => {
-    try {
-      const roomId = c.req.param("room_id");
-
-      const body = c.req.valid("json");
-      const summary = body.summary;
-
-      // checking call exist
-      const existingCall = await c.env.zappytalk_db
-        .prepare("SELECT id FROM calls WHERE room_id = ? AND deleted_at IS NULL")
-        .bind(roomId)
-        .first();
-
-      if (!existingCall) {
-        return c.json({ error: "Call not found" }, 404);
-      }
-
-      const updateResult = await c.env.zappytalk_db
-        .prepare("UPDATE calls SET summary = ? WHERE room_id = ? AND deleted_at IS NULL")
-        .bind(summary, roomId)
-        .run();
-
-      if (!updateResult.success || (updateResult.meta as { changes?: number } | undefined)?.changes === 0) {
-        return c.json({ error: "Failed to update call summary" }, 500);
-      }
-
-      return c.json({
-        message: "Call summary updated successfully",
-      });
-    } catch (error) {
-      console.error("Error in PUT /:room_id/summary:", error);
-      return c.json({ error: "Internal server error" }, 500);
-    }
-  }
-);
-
 // POST /add-memory - Add memory for a call
 calls.post(
   "/add-memory",
@@ -155,17 +114,17 @@ calls.post(
   async (c) => {
     try {
       const body = c.req.valid("json");
-      const { room_id, user_id, embedding_id, memory, memory_embedding, memory_type } = body;
+      const { room_id, user_id, embedding_id, memory, memory_type } = body;
 
       const memory_id = crypto.randomUUID();
       const created_at = new Date().toISOString();
 
       const result = await c.env.zappytalk_db
         .prepare(`
-      INSERT INTO memories (memory_id, room_id, user_id, embedding_id, memory, memory_embedding, memory_type, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO memories (memory_id, room_id, user_id, embedding_id, memory, memory_type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
-        .bind(memory_id, room_id, user_id, embedding_id, memory, memory_embedding, memory_type, created_at)
+        .bind(memory_id, room_id, user_id, embedding_id, memory, memory_type, created_at)
         .run();
 
       if (!result.success) {

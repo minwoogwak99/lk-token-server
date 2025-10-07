@@ -11,16 +11,11 @@ export const createCallSchema = z.object({
   room_id: z.string().optional().nullable(),
 });
 
-export const updateCallSummarySchema = z.object({
-  summary: z.string().optional().nullable(),
-});
-
 export const addMemorySchema = z.object({
   room_id: z.string().min(1, "room_id is required"),
   user_id: z.string().min(1, "user_id is required"),
   embedding_id: z.number().min(1, "embedding_id is required"),
   memory: z.string().min(1, "memory is required"),
-  memory_embedding: z.string().min(1, "memory_embedding is required"),
   memory_type: z.enum(['summary', 'fact'])
 });
 
@@ -36,6 +31,5 @@ export const paginationQuerySchema = z.object({
 );
 
 export type CreateCallInput = z.infer<typeof createCallSchema>;
-export type UpdateCallSummaryInput = z.infer<typeof updateCallSummarySchema>;
 export type AddMemoryInput = z.infer<typeof addMemorySchema>;
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;
