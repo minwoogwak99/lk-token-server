@@ -2,12 +2,6 @@ import { Context, Next } from "hono";
 import { createClerkClient } from "@clerk/backend";
 
 export const authMiddleware = async (c: Context, next: Next) => {
-  // Skip auth in local development
-  if (c.env.ENVIRONMENT === 'local') {
-    await next();
-    return;
-  }
-
   try {
     const clerkClient = createClerkClient({
       secretKey: c.env.CLERK_SECRET_KEY,
